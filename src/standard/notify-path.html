@@ -432,6 +432,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _notifySplice: function(array, path, index, added, removed) {
+        if (observers.has(array)) {
+          let set = window.observers.get(array)
+          for (let i = 0, n = set.length; i < n; i++) {
+            let observer = set[i];
+            if (observer.scope !== this) {
+              this._notifySplices.call(observer.scope, array, observer.property, [{
+                index: index,
+                addedCount: added,
+                removed: removed,
+                object: array,
+                type: 'splice'
+              }]);
+            }
+          }
+        }
+
         this._notifySplices(array, path, [{
           index: index,
           addedCount: added,

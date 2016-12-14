@@ -9,6 +9,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 <link rel="import" href="../path.html">
 <script>
+  window.observers = new WeakMap();
+
+  var ReferenceDecoupler = function (value) {
+    return {
+      detached: function () {
+        let i = 0, set = observers.get(value);
+        while (i < set.length) {
+          if (set[i].scope === this) {
+            set.splice(i ,1);
+            break;
+          }
+          i++;
+        }
+      }
+    };
+  }
 
   Polymer.Bind = {
 
@@ -78,6 +94,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _effectEffects: function(property, value, effects, old, fromAbove) {
+        if (typeof value === 'object' || typeof value === 'array') {
+          if (observers.has(value)) {
+            observers.get(value).push({scope: this, property: property});
+          } else {
+            observers.set(value, [{scope: this, property: property}]);
+          }
+
+          let i = 0, n = this.behaviors.length;
+          while (i <= n) {
+            if (this.behaviors[i] === ReferenceDecoupler) {
+              break;
+            } else if (i === n) {
+              this.behaviors.push(ReferenceDecoupler(value));
+            }
+            i++;
+          }
+        }
+
         for (var i=0, l=effects.length, fx; (i<l) && (fx=effects[i]); i++) {
           // always send latest value for property
           // if any previous effect has modified the value, given `value` will be stale
