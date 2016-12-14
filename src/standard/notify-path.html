@@ -92,25 +92,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       // Note: this implemetation only accepts key-based array paths
       _notifyPath: function(path, value, fromAbove) {
-        var old = this._propertySetter(path, value);
-        // manual dirty checking for now...
-        // NaN is always not equal to itself,
-        // if old and value are both NaN we treat them as equal
-        // x === x is 10x faster, and equivalent to !isNaN(x)
-        if (old !== value && (old === old || value === value)) {
-          // console.group((this.localName || this.dataHost.id + '-' + this.dataHost.dataHost.index) + '#' + (this.id || this.index) + ' ' + path, value);
-          // Take path effects at this level for exact path matches,
-          // and notify down for any bindings to a subset of this path
-          this._pathEffector(path, value);
-          // Send event to notify the path change upwards
-          // Optimization: don't notify up if we know the notification
-          // is coming from above already (avoid wasted event dispatch)
-          if (!fromAbove) {
-            // TODO(sorvell): should only notify if notify: true?
-            this._notifyPathUp(path, value);
+        const key = this._get(this._getPathParts(path)[0]);
+        if (window.observers.has(key)) {
+          var wm = window.observers.get(key)
+          for (var i = 0, x; (x = wm[i]); i++) {
+            if (x.scope !== this) {
+              process.call(x.scope)
+            }
           }
-          // console.groupEnd((this.localName || this.dataHost.id + '-' + this.dataHost.dataHost.index) + '#' + (this.id || this.index) + ' ' + path, value);
-          return true;
+        }
+
+        return process.call(this);
+
+        function process() {
+          var old = this._propertySetter(path, value);
+          // manual dirty checking for now...
+          // NaN is always not equal to itself,
+          // if old and value are both NaN we treat them as equal
+          // x === x is 10x faster, and equivalent to !isNaN(x)
+          if (old !== value && (old === old || value === value)) {
+            // console.group((this.localName || this.dataHost.id + '-' + this.dataHost.dataHost.index) + '#' + (this.id || this.index) + ' ' + path, value);
+            // Take path effects at this level for exact path matches,
+            // and notify down for any bindings to a subset of this path
+            this._pathEffector(path, value);
+            // Send event to notify the path change upwards
+            // Optimization: don't notify up if we know the notification
+            // is coming from above already (avoid wasted event dispatch)
+            if (!fromAbove) {
+              // TODO(sorvell): should only notify if notify: true?
+              this._notifyPathUp(path, value);
+            }
+            // console.groupEnd((this.localName || this.dataHost.id + '-' + this.dataHost.dataHost.index) + '#' + (this.id || this.index) + ' ' + path, value);
+            return true;
+          }
         }
       },
 
@@ -154,6 +168,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * @param {Object=} root Root object from which the path is evaluated.
       */
       set: function(path, value, root) {
+        console.log(path, value, root)
         var prop = root || this;
         var parts = this._getPathParts(path);
         var array;
@@ -433,28 +448,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       _notifySplice: function(array, path, index, added, removed) {
         if (window.observers.has(array)) {
-          var set = window.observers.get(array)
-          for (var i = 0, n = set.length; i < n; i++) {
-            var observer = set[i];
-            if (observer.scope !== this) {
-              this._notifySplices.call(observer.scope, array, observer.property, [{
-                index: index,
-                addedCount: added,
-                removed: removed,
-                object: array,
-                type: 'splice'
-              }]);
+          var wm = window.observers.get(array)
+          for (var i = 0, x; (x = wm[i]); i++) {
+            if (x.scope !== this) {
+              process.call(x.scope, x.property);
             }
           }
         }
 
-        this._notifySplices(array, path, [{
-          index: index,
-          addedCount: added,
-          removed: removed,
-          object: array,
-          type: 'splice'
-        }]);
+        return process.call(this, path);
+
+        function process(path) {
+          this._notifySplices(array, path, [{
+            index: index,
+            addedCount: added,
+            removed: removed,
+            object: array,
+            type: 'splice'
+          }]);
+        }
       },
 
       /**
