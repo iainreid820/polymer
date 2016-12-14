@@ -14,7 +14,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   var ReferenceDecoupler = function (value) {
     return {
       detached: function () {
-        let i = 0, set = observers.get(value);
+        var i = 0, set = window.observers.get(value);
         while (i < set.length) {
           if (set[i].scope === this) {
             set.splice(i ,1);
@@ -94,21 +94,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _effectEffects: function(property, value, effects, old, fromAbove) {
-        if (typeof value === 'object' || typeof value === 'array') {
-          if (observers.has(value)) {
-            observers.get(value).push({scope: this, property: property});
+        if (value.constructor === Object || value.constructor === Array) {
+          if (window.observers.has(value)) {
+            window.observers.get(value).push({scope: this, property: property});
           } else {
-            observers.set(value, [{scope: this, property: property}]);
+            window.observers.set(value, [{scope: this, property: property}]);
           }
 
-          let i = 0, n = this.behaviors.length;
-          while (i <= n) {
-            if (this.behaviors[i] === ReferenceDecoupler) {
+          var j = 0, n = this.behaviors.length;
+          while (j <= n) {
+            if (this.behaviors[j] === ReferenceDecoupler) {
               break;
-            } else if (i === n) {
+            } else if (j === n) {
               this.behaviors.push(ReferenceDecoupler(value));
             }
-            i++;
+            j++;
           }
         }
 
