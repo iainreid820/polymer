@@ -94,17 +94,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _notifyPath: function(path, value, fromAbove) {
         const key = this._get(this._getPathParts(path)[0]);
         if (window.observers.has(key)) {
-          var wm = window.observers.get(key)
+          var wm = window.observers.get(key);
+          var parts = this._getPathParts(path);
+          parts.shift();
           for (var i = 0, x; (x = wm[i]); i++) {
             if (x.scope !== this) {
-              process.call(x.scope)
+              process.call(x.scope, [].concat([x.property], parts).join('.'));
             }
           }
         }
 
-        return process.call(this);
+        return process.call(this, path);
 
-        function process() {
+        function process(path) {
           var old = this._propertySetter(path, value);
           // manual dirty checking for now...
           // NaN is always not equal to itself,
@@ -168,7 +170,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * @param {Object=} root Root object from which the path is evaluated.
       */
       set: function(path, value, root) {
-        console.log(path, value, root)
         var prop = root || this;
         var parts = this._getPathParts(path);
         var array;
@@ -447,26 +448,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _notifySplice: function(array, path, index, added, removed) {
-        if (window.observers.has(array)) {
-          var wm = window.observers.get(array)
-          for (var i = 0, x; (x = wm[i]); i++) {
-            if (x.scope !== this) {
-              process.call(x.scope, x.property);
-            }
-          }
-        }
-
-        return process.call(this, path);
-
-        function process(path) {
-          this._notifySplices(array, path, [{
-            index: index,
-            addedCount: added,
-            removed: removed,
-            object: array,
-            type: 'splice'
-          }]);
-        }
+        this._notifySplices(array, path, [{
+          index: index,
+          addedCount: added,
+          removed: removed,
+          object: array,
+          type: 'splice'
+        }]);
       },
 
       /**
