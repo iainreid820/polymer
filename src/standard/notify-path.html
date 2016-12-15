@@ -92,7 +92,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       // Note: this implemetation only accepts key-based array paths
       _notifyPath: function(path, value, fromAbove) {
-        const key = this._get(this._getPathParts(path)[0]);
+        var key = this._get(this._getPathParts(path)[0]);
         if (window.observers.has(key)) {
           var wm = window.observers.get(key);
           var parts = this._getPathParts(path);
